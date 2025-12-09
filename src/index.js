@@ -1,17 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./App.css"; // 위에서 만든 CSS 불러오기
+import App from "./App"; // 아까 만든 App.js 불러오기
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
+  // React.StrictMode는 개발 모드에서 잠재적 문제를 감지하기 위해 두 번 렌더링합니다.
+  // API가 두 번 호출되는 게 싫으면 <App />만 남기고 지워도 됩니다.
   <React.StrictMode>
     <App />
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

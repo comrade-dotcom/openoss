@@ -1,66 +1,66 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+// src/pages/RackList.jsx
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 
-const ListContainer = styled.div`
+// 스타일 컴포넌트 생략 (기존과 동일)
+const ListGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 `;
 const Card = styled.div`
   border: 1px solid #ddd;
   padding: 15px;
   border-radius: 8px;
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
 `;
 
-const RackList = () => {
-  const [racks, setRacks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+const RackList = ({ racks }) => {
+  const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    // json-server에서 데이터 가져오기
-    axios
-      .get("http://localhost:3000/racks")
-      .then((res) => setRacks(res.data))
-      .catch((err) => console.error(err));
-  }, []);
+  // 데이터가 없을 때를 대비한 안전 장치
+  if (!racks) return <div>데이터가 없습니다.</div>;
 
-  // 검색 필터링 [cite: 114]
-  const filteredRacks = racks.filter(
-    (rack) =>
-      rack.name.includes(searchTerm) || rack.district.includes(searchTerm)
+  const filtered = racks.filter(
+    (r) =>
+      // 이름이나 구역 이름에 검색어가 포함되어 있으면 보여줌
+      r.name.includes(search) || (r.district && r.district.includes(search))
   );
 
   return (
     <div>
-      <h2>📍 자전거 보관소 목록</h2>
-      <input
-        type="text"
-        placeholder="지역명 또는 보관소 이름 검색..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        style={{ width: "100%", padding: "10px", marginBottom: "20px" }}
-      />
+      <h2>📍 목록 (검색 결과: {filtered.length}개)</h2>
 
-      <div style={{ marginBottom: "10px" }}>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="'연수구' 또는 '보관소' 검색..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: 1, padding: "10px" }}
+        />
         <Link to="/create">
-          <button>+ 새 보관소 등록 (CRUD)</button>
+          <button style={{ padding: "10px" }}>+ 등록</button>
         </Link>
       </div>
 
-      <ListContainer>
-        {filteredRacks.map((rack) => (
-          <Card key={rack.id}>
-            <h3>{rack.name}</h3>
-            <p>구역: {rack.district}</p>
-            <Link to={`/detail/${rack.id}`}>상세보기 &gt;</Link>
-          </Card>
-        ))}
-      </ListContainer>
+      {filtered.length === 0 ? (
+        <p>검색 결과가 없습니다.</p>
+      ) : (
+        <ListGrid>
+          {filtered.slice(0, 50).map((rack) => (
+            <Card key={rack.id}>
+              <h3>{rack.name}</h3>
+              <p>📍 {rack.district}</p>
+              <p>수용: {rack.capacity}대</p>
+              <Link to={`/detail/${rack.id}`} style={{ color: "blue" }}>
+                상세보기
+              </Link>
+            </Card>
+          ))}
+        </ListGrid>
+      )}
     </div>
   );
 };
