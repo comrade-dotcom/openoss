@@ -33,17 +33,6 @@ const Avatar = styled.div`
   font-weight: bold;
 `;
 
-const Info = styled.div`
-  h2 {
-    margin: 0 0 10px 0;
-    color: #333;
-  }
-  p {
-    margin: 0;
-    color: #666;
-  }
-`;
-
 const Section = styled.div`
   margin-top: 30px;
   h3 {
@@ -53,33 +42,132 @@ const Section = styled.div`
   }
 `;
 
-const MyPage = () => {
+const FavList = styled.ul`
+  list-style: none;
+  padding: 0;
+`;
+
+const FavItem = styled.li`
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const MemoInput = styled.input`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+`;
+
+// App.js에서 내려준 props를 받습니다.
+const MyPage = ({
+  favorites = [],
+  racks = [],
+  removeFavorite,
+  updateFavoriteMemo,
+}) => {
+  // 즐겨찾기 데이터와 실제 보관소 데이터를 합칩니다.
+  const myFavorites = favorites
+    .map((fav) => {
+      const rack = racks.find((r) => r.id === fav.rackId);
+      return {
+        ...fav,
+        rackInfo: rack, // rack 정보가 없을 수도 있음 (삭제된 경우 등)
+      };
+    })
+    .filter((item) => item.rackInfo); // 보관소 정보가 있는 것만 필터링
+
   return (
     <Container>
       <ProfileCard>
         <Avatar>U</Avatar>
-        <Info>
-          <h2>이민형 & 황도현 (관리자)</h2>
-          <p>incheon_bike_admin@example.com</p>
-          <p>가입일: 2025.12.09</p>
-        </Info>
+        <div>
+          <h2 style={{ margin: "0 0 10px 0" }}>자전거 관리자</h2>
+          <p style={{ color: "#666" }}>bike_master@example.com</p>
+        </div>
       </ProfileCard>
 
       <Section>
-        <h3>내가 등록한 보관소</h3>
-        <p style={{ marginTop: "20px", color: "#888" }}>
-          아직 등록된 보관소가 없습니다.{" "}
-          <Link to="/create" style={{ color: "#004d40", fontWeight: "bold" }}>
-            새 보관소 등록하기
-          </Link>
-        </p>
-      </Section>
+        <h3>즐겨찾기 목록 ({myFavorites.length})</h3>
 
-      <Section>
-        <h3>즐겨찾기 목록</h3>
-        <p style={{ marginTop: "20px", color: "#888" }}>
-          즐겨찾기한 보관소가 없습니다.
-        </p>
+        {myFavorites.length === 0 ? (
+          <p style={{ marginTop: "20px", color: "#888" }}>
+            즐겨찾기한 보관소가 없습니다. 리스트에서 ❤️를 눌러보세요!
+          </p>
+        ) : (
+          <FavList>
+            {myFavorites.map((item) => (
+              <FavItem key={item.rackId}>
+                <HeaderRow>
+                  <div>
+                    <Link
+                      to={`/detail/${item.rackId}`}
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "1.1rem",
+                        color: "#004d40",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {item.rackInfo.name}
+                    </Link>
+                    <span
+                      style={{
+                        fontSize: "0.9rem",
+                        color: "#666",
+                        marginLeft: "10px",
+                      }}
+                    >
+                      ({item.rackInfo.district})
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeFavorite(item.rackId)}
+                    style={{
+                      background: "#ff5252",
+                      color: "white",
+                      border: "none",
+                      padding: "5px 10px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    삭제
+                  </button>
+                </HeaderRow>
+
+                {/* 메모 기능 연결 */}
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
+                  <span style={{ fontSize: "0.9rem", fontWeight: "bold" }}>
+                    메모:
+                  </span>
+                  <MemoInput
+                    type="text"
+                    placeholder="여기에 메모를 입력하세요 (예: 출근길 이용)"
+                    value={item.memo}
+                    onChange={(e) =>
+                      updateFavoriteMemo(item.rackId, e.target.value)
+                    }
+                  />
+                </div>
+              </FavItem>
+            ))}
+          </FavList>
+        )}
       </Section>
     </Container>
   );

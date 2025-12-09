@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import axios from "axios";
+import styled from "styled-components";
+
+// ⚠️ 수정됨: 파일들이 pages 폴더 안에 있다면 경로를 이렇게 지정해야 합니다.
 import Home from "./pages/Home";
 import RackList from "./pages/RackList";
 import RackDetail from "./pages/RackDetail";
 import RackForm from "./pages/RackForm";
 import MyPage from "./pages/MyPage";
-import styled from "styled-components";
 
 const Nav = styled.nav`
   background: #004d40;
@@ -15,9 +17,14 @@ const Nav = styled.nav`
   display: flex;
   gap: 20px;
   font-weight: bold;
+  align-items: center;
   a {
     color: white;
     text-decoration: none;
+    transition: color 0.3s;
+    &:hover {
+      color: #a7ffeb;
+    }
   }
 `;
 
@@ -26,11 +33,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ⭐ 즐겨찾기 상태 (CRUD의 대상)
-  // 구조: { rackId: 1, memo: "자주 가는 곳" }
+  // ... (이하 로직은 기존과 동일하므로 그대로 두시면 됩니다)
+  // ⭐ 즐겨찾기 상태: { rackId: number, memo: string }[]
   const [favorites, setFavorites] = useState([]);
 
-  // 구 코드 -> 구 이름 변환
+  // 구 코드 -> 구 이름 변환 맵
   const districtMap = {
     28177: "연수구",
     28185: "남동구",
@@ -45,7 +52,7 @@ function App() {
   };
 
   useEffect(() => {
-    // API 호출 (기존과 동일)
+    // 실제 오픈 API 호출
     const fetchUrl =
       "/api/server/rest/services/Hosted/오픈데이터_교통시설물_정보_자전거보관소/FeatureServer/26/query?outFields=*&where=1%3D1&f=geojson";
 
@@ -56,8 +63,8 @@ function App() {
         const formattedData = res.data.features.map((feature) => {
           const guCode = feature.properties.gucd || "";
           return {
-            id: feature.id,
-            name: `자전거 보관소 ${feature.id}`,
+            id: feature.id, // ID는 숫자형으로 유지
+            name: `자전거 보관소 ${feature.id}`, // 이름 정보가 없을 경우 ID 활용
             district: districtMap[guCode] || `구역(${guCode})`,
             lat: feature.geometry.coordinates[1],
             lng: feature.geometry.coordinates[0],
@@ -71,38 +78,42 @@ function App() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
-        setError("데이터를 불러오지 못했습니다.");
+        console.error("API Error:", err);
+        setError("데이터를 불러오지 못했습니다. (CORS 문제일 수 있음)");
         setLoading(false);
       });
   }, []);
 
-  // --- 보관소 CRUD (메모리상) ---
-  const handleCreateRack = (newItem) =>
-    setRacks([{ ...newItem, id: Date.now() }, ...racks]);
-  const handleUpdateRack = (id, updatedItem) =>
-    setRacks(
-      racks.map((item) =>
+  // --- CRUD 핸들러 ---
+  const handleCreateRack = (newItem) => {
+    setRacks((prev) => [{ ...newItem, id: Date.now() }, ...prev]);
+  };
+
+  const handleUpdateRack = (id, updatedItem) => {
+    setRacks((prev) =>
+      prev.map((item) =>
         item.id === parseInt(id) ? { ...updatedItem, id: parseInt(id) } : item
       )
     );
+  };
+
   const handleDeleteRack = (id) => {
-    setRacks(racks.filter((item) => item.id !== parseInt(id)));
-    // 보관소가 삭제되면 즐겨찾기에서도 제거
-    setFavorites(favorites.filter((fav) => fav.rackId !== parseInt(id)));
+    setRacks((prev) => prev.filter((item) => item.id !== parseInt(id)));
+    // 보관소 삭제 시 즐겨찾기에서도 제거
+    setFavorites((prev) => prev.filter((fav) => fav.rackId !== parseInt(id)));
   };
 
-  // --- ⭐ 즐겨찾기 CRUD 구현 ---
-
-  // 1. Create (즐겨찾기 추가)
+  // --- 즐겨찾기 핸들러 ---
   const addFavorite = (rackId) => {
-    if (favorites.find((fav) => fav.rackId === rackId)) return;
+    if (favorites.some((fav) => fav.rackId === rackId)) return;
     setFavorites([...favorites, { rackId, memo: "" }]);
+    alert("즐겨찾기에 추가되었습니다!");
   };
 
-  // 2. Read (는 MyPage에서 수행)
+  const removeFavorite = (rackId) => {
+    setFavorites(favorites.filter((fav) => fav.rackId !== rackId));
+  };
 
-  // 3. Update (즐겨찾기 메모 수정)
   const updateFavoriteMemo = (rackId, newMemo) => {
     setFavorites(
       favorites.map((fav) =>
@@ -111,22 +122,21 @@ function App() {
     );
   };
 
-  // 4. Delete (즐겨찾기 삭제)
-  const removeFavorite = (rackId) => {
-    setFavorites(favorites.filter((fav) => fav.rackId !== rackId));
-  };
-
   return (
     <BrowserRouter>
       <Nav>
         <Link to="/">🚲 인천 자전거</Link>
         <Link to="/list">보관소 찾기</Link>
-        <Link to="/my">마이페이지(즐겨찾기)</Link>
+        <Link to="/my">마이페이지</Link>
       </Nav>
 
-      <div style={{ padding: "20px" }}>
-        {loading && <h3>데이터 불러오는 중...</h3>}
-        {error && <h3>{error}</h3>}
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px" }}>
+        {loading && (
+          <h3 style={{ textAlign: "center" }}>데이터 로딩 중... 🚲</h3>
+        )}
+        {error && (
+          <h3 style={{ color: "red", textAlign: "center" }}>{error}</h3>
+        )}
 
         {!loading && !error && (
           <Routes>
@@ -151,13 +161,12 @@ function App() {
                   favorites={favorites}
                   addFavorite={addFavorite}
                   removeFavorite={removeFavorite}
-                  updateFavoriteMemo={updateFavoriteMemo}
                 />
               }
             />
             <Route
               path="/create"
-              element={<RackForm onCreate={handleCreateRack} />}
+              element={<RackForm racks={racks} onCreate={handleCreateRack} />}
             />
             <Route
               path="/update/:id"
@@ -167,8 +176,8 @@ function App() {
               path="/my"
               element={
                 <MyPage
-                  favorites={favorites}
                   racks={racks}
+                  favorites={favorites}
                   removeFavorite={removeFavorite}
                   updateFavoriteMemo={updateFavoriteMemo}
                 />
